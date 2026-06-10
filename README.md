@@ -2,6 +2,9 @@
 
 Small static web app for preparing nf-core pipelines for offline or air-gapped execution.
 
+The app is available at: https://github.io/fa2k/nf-offline/
+
+
 The app runs entirely in the browser. It uses live GitHub data to:
 
 - list nf-core pipelines and releases
