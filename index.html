@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Offline Prep Command Generator for nf-core pipelines</title>
+    <meta
+      name="description"
+      content="Generate offline-prep shell commands for nf-core pipelines using live GitHub metadata and release configs."
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./styles.css?v=20260610-3" />
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="site-header__inner">
+        <div class="brand-lockup" aria-label="Offline nf-core pipeline tool">
+          <span class="brand-mark">op</span>
+          <span class="brand-text">
+            <strong>Offline nf-core pipeline tool</strong>
+            <span>Script generator for downloading nf-core pipelines</span>
+          </span>
+        </div>
+        <nav class="site-nav" aria-label="Related nf-core resources">
+          <a href="https://nf-co.re/pipelines/" target="_blank" rel="noreferrer">Pipelines</a>
+          <a href="https://nf-co.re/docs/" target="_blank" rel="noreferrer">Docs</a>
+          <a href="https://nf-co.re/tools/" target="_blank" rel="noreferrer">Tools</a>
+        </nav>
+      </div>
+    </header>
+      <section class="workspace-grid">
+        <section class="panel controls-panel">
+          <div class="panel-header">
+            <div>
+              <p class="panel-kicker">Selection</p>
+              <h2>Pipeline and bundle settings</h2>
+            </div>
+            <button id="copy-all-button" class="secondary-button" type="button" disabled>
+              Copy all commands
+            </button>
+          </div>
+
+          <form id="generator-form" class="generator-form">
+            <div class="field">
+              <label for="pipeline-input">nf-core pipeline</label>
+              <input
+                id="pipeline-input"
+                name="pipeline"
+                list="pipeline-options"
+                autocomplete="off"
+                spellcheck="false"
+                placeholder="sarek or nf-core/sarek"
+              />
+              <datalist id="pipeline-options"></datalist>
+              <p class="field-hint">
+                Choose from live GitHub data or type a repo name manually if the org list is noisy.
+              </p>
+            </div>
+
+            <div class="field-row two-up">
+              <div class="field">
+                <label for="release-input">Release</label>
+                <input
+                  id="release-input"
+                  name="release"
+                  list="release-options"
+                  autocomplete="off"
+                  spellcheck="false"
+                  placeholder="3.8.1"
+                />
+                <datalist id="release-options"></datalist>
+                <p id="release-hint" class="field-hint">Release options appear after a pipeline is chosen.</p>
+              </div>
+
+              <div class="field">
+                <label for="runtime-profile">Offline container runtime</label>
+                <select id="runtime-profile" name="runtimeProfile">
+                  <option value="singularity">singularity</option>
+                  <option value="apptainer">apptainer</option>
+                </select>
+                <p class="field-hint">
+                  The download step always prepares Singularity image files; the run step can target Apptainer.
+                </p>
+              </div>
+            </div>
+
+            <div class="field-row two-up">
+              <div class="field">
+                <label for="nextflow-version-override">Nextflow version override</label>
+                <input
+                  id="nextflow-version-override"
+                  name="nextflowVersionOverride"
+                  autocomplete="off"
+                  spellcheck="false"
+                  placeholder="Leave blank to use the recommended version"
+                />
+                <p class="field-hint">
+                  If set, this replaces the recommended version but does not change the parsed plugin set.
+                </p>
+              </div>
+
+              <div class="field">
+                <label for="bundle-name">Bundle directory name</label>
+                <input
+                  id="bundle-name"
+                  name="bundleName"
+                  autocomplete="off"
+                  spellcheck="false"
+                  placeholder="Auto-generated from pipeline + release"
+                />
+                <p class="field-hint">Use a custom directory only if you need a different transfer bundle name.</p>
+              </div>
+            </div>
+
+            <div class="field">
+              <label for="offline-run-args">Offline run arguments</label>
+              <textarea
+                id="offline-run-args"
+                name="offlineRunArgs"
+                rows="4"
+                spellcheck="false"
+              >--input /path/to/samplesheet.csv
+--outdir /path/to/results</textarea>
+              <p class="field-hint">Enter one argument line per line. These are appended to the offline run command.</p>
+            </div>
+
+            <div class="form-actions">
+              <button id="inspect-button" class="primary-button" type="submit">Inspect release</button>
+              <button id="refresh-button" class="ghost-button" type="button">Refresh from GitHub</button>
+            </div>
+          </form>
+        </section>
+
+        <aside class="panel summary-panel">
+          <div class="panel-header compact">
+            <div>
+              <p class="panel-kicker">Inspection</p>
+              <h2>Detected release facts</h2>
+            </div>
+          </div>
+
+          <div id="status-banner" class="status-banner status-banner--info">
+            Loading pipeline index from GitHub.
+          </div>
+
+          <dl class="summary-list" id="summary-list">
+            <div>
+              <dt>Pipeline</dt>
+              <dd id="summary-pipeline">Not loaded yet</dd>
+            </div>
+            <div>
+              <dt>Release</dt>
+              <dd id="summary-release">Not loaded yet</dd>
+            </div>
+            <div>
+              <dt>Manifest constraint</dt>
+              <dd id="summary-constraint">Waiting for inspection</dd>
+            </div>
+            <div>
+              <dt>Recommended Nextflow</dt>
+              <dd id="summary-runtime">Waiting for inspection</dd>
+            </div>
+            <div>
+              <dt>Bundle directory</dt>
+              <dd id="summary-bundle">Waiting for inspection</dd>
+            </div>
+            <div>
+              <dt>Config source</dt>
+              <dd id="summary-config-source">Waiting for inspection</dd>
+            </div>
+          </dl>
+
+          <section class="summary-card">
+            <div class="summary-card-head">
+              <h3>Plugins block</h3>
+              <span id="plugins-count" class="pill">0 detected</span>
+            </div>
+            <ul id="plugins-list" class="plugin-list empty-state">
+              <li>Inspect a release to see pinned plugin versions.</li>
+            </ul>
+          </section>
+
+          <section class="summary-card">
+            <div class="summary-card-head">
+              <h3>Resolution note</h3>
+              <span id="resolution-badge" class="pill">Awaiting data</span>
+            </div>
+            <p id="resolution-note" class="resolution-note">
+              The recommended runtime version will be selected from the parsed manifest constraint and any pinned plugin minimum versions that can be resolved from public GitHub metadata.
+            </p>
+            <ul id="warnings-list" class="warning-list hidden"></ul>
+          </section>
+        </aside>
+      </section>
+
+      <section class="panel commands-panel">
+        <div class="panel-header">
+          <div>
+            <p class="panel-kicker">Output</p>
+            <h2>Copy-paste command sequence</h2>
+          </div>
+          <p class="commands-caption">
+            Each block is generated from the current selection and can be copied or downloaded on its own.
+          </p>
+        </div>
+        <div id="command-grid" class="command-grid">
+          <article class="command-card command-card--empty">
+            <h3>Waiting for a pipeline release</h3>
+            <p>Choose a pipeline and release, then inspect it to populate the offline-prep commands.</p>
+          </article>
+        </div>
+      </section>
+    </main>
+
+    <script type="module" src="./js/app.js?v=20260610-4"></script>
+  </body>
+</html>
